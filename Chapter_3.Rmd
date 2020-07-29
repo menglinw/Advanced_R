@@ -1,0 +1,410 @@
+---
+title: "Ch3 Vectors"
+author: "Menglin"
+date: "7/28/2020"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+# Chapter 3. Vector
+Vectors come in two flavours: atomic vectors and lists. They differ in terms of their elements' types: for atomic vectors, all elements must have the same type; for lists, elements can have different types.NULL usually serve as a generic zero lenth vector.
+
+Every vector can also have attributes, which you can think of as a named list of arbitrary metadata. Two attributes are particularly important. The dimension attribute turns vectors into matrices and arrays and the class attribute powers the S3 object system.
+
+## 3.1 Atomic vectors 
+There are four primary types of atomic vectors: logical, integer, double, and character. We use c(), which is short for combine, to creat longer vector. When inputs are atomic vectors, c() always creates atomic victor.
+
+```{r}
+double_vector <- c(1.0, 1.1, 1.2)
+integer_vector <- c(1,2,3)
+logical_vector <- c(TRUE, FALSE)
+character_vector <- c("This is ","a string vector")
+typeof(double_vector)
+length(double_vector)
+typeof(integer_vector)
+length(integer_vector)
+typeof(logical_vector)
+length(logical_vector)
+typeof(character_vector)
+length(character_vector)
+```
+
+Most computations involving a missing value will return another missing value. But there are sever exceptions, which are listed below.
+```{r}
+NA^0
+NA | TRUE
+NA & FALSE
+```
+
+When checking NA in a vector, use is.na() rather than ==. NA does not have the same value as another NA (it will return NA).
+```{r}
+x <- c(NA, 1, NA, 2)
+is.na(x)
+NA == NA
+```
+
+When attempt to combine different types, they will be coerced in a fixed order: character -> double -> integer -> logical. Most math functions will coerce to numeric, which is usful for logical vector.
+
+```{r}
+# is.logical(): test if a vector is a logical
+# is.integer(): test if a vector is a integer
+# is.double(): test if a vector is a double
+# is.character(): test if a vector is a character
+```
+
+## 3.2 Attributes
+
+You can think of attributes as name-value pairs that attach metadata to an object. Individual attributes can be retrieved and modified with attr(), or retrieved en masse with attributes(), and set en masse with structure().
+
+```{r}
+a <- 1:3
+attr(a, "x") <- "abcdef"
+attr(a, "x")
+attr(a, "y") <- 4:6
+str(attributes(a))
+```
+```{r}
+# Or equivalently 
+a <- structure(
+  1:3, 
+  x = "abcdef",
+  y = 4:6
+)
+str(attributes(a))
+```
+
+Attributes should be thought of as ephemeral, since most attributes are lost easily, for instance by most operations. But there are only two attributes that are routinely reserved.
+
+names: a character vector giving element a name
+
+dimensions: an interger vector, used to turn vectors into matrices or arrays.
+
+To preserve other attributes, you will need to create you own S3 class.
+
+### 3.3.2 Names
+
+Name a vector in three ways:
+```{r}
+# 1.
+x <- c(a = 1, b = 2, c = 3)
+
+# 2. 
+x <- 1:3
+names(x) <- c("a","b","c")
+
+#3.
+x <- setNames(1:3, c("a","b","c"))
+```
+
+Remove names from a vector by using 
+```{r}
+# Remove names from a vector 
+unname(x)
+names(x) <- NULL
+```
+
+### 3.3.3 Dimensions
+
+Adding a dim attribute to a vector allows it to behave like a 2-dimensional matrix or a multi-dimensional array.You can create matrices and arrays with matrix() and array(), or by using the assignment form of dim():
+```{r}
+a <- matrix(1:6, nrow = 2, ncol = 3)
+a
+```
+```{r}
+b <- array(1:6, c(2,3))
+b
+```
+```{r}
+c <- 1:6
+dim(c) <- c(2,3)
+c
+```
+
+A vector without a dim attribute has NULL dimensions. Matrix with a single row or column, or arrays with a single dimension, print similarly but behave differently. When getting strange output from a function, we may check this point. 
+```{r}
+# Use str() to check dim attribute
+str(1:3)
+str(matrix(1:3, ncol = 1))
+str(matrix(1:3, nrow = 1))
+str(array(1:3,3))
+```
+```{r}
+body(setNames)
+```
+
+## 3.4 S3 atomic vectors
+
+One of the most important vector attributes is class, which underlies the S3 object system. Having a class attribute turns an object into an S3 object, which means it will behave differently from a regular vector when passed to a generic function. In this section, we will discuss 4 important S3 vectors: factor vectors, date vectors, POSIXct vectors (Date-times), difftime vectors (durations)
+
+### 3.4.1 Factors
+
+A factor is a vector that can contain only predefined values. It is used to store categorical data. Factors are built on top of an integer vector with two attributes: a class, “factor”, which makes it behave differently from regular integer vectors, and levels, which defines the set of allowed values.
+
+```{r}
+x <- factor(c("a","b","a","b"))
+x
+typeof(x)
+attributes(x)
+```
+
+
+Ordered factors are a minor variation of factors. In general, they behave like regular factors, but the order of the levels is meaningful (low, medium, high) (a property that is automatically leveraged by some modelling and visualisation functions)
+
+```{r}
+grade <- ordered(c("b","b","a","c"), levels = c("c","b","a"))
+grade
+```
+
+### 3.4.2 Dates
+
+Date vectors are built on top of double vectors. They have class “Date” and no other attributes. The value of the double (which can be seen by stripping the class), represents the number of days since 1970-01-01
+
+```{r}
+today <- Sys.Date()
+typeof(today)
+attributes(today)
+```
+
+
+### 3.4.3 Date-times
+
+Base R provides two ways of storing date-time information, POSIXct, and POSIXlt. These are admittedly odd names: “POSIX” is short for Portable Operating System Interface, which is a family of cross-platform standards. “ct” stands for calendar time (the time_t type in C), and “lt” for local time (the struct tm type in C). Here we’ll focus on POSIXct, because it’s the simplest, is built on top of an atomic vector, and is most appropriate for use in data frames. POSIXct vectors are built on top of double vectors, where the value represents the number of seconds since 1970-01-01.
+
+```{r}
+now_ct <- as.POSIXct("2018-08-01 22:00", tz = "UTC")
+now_ct
+typeof(now_ct)
+attributes(now_ct)
+```
+
+The tzone attribute controls only how the date-time is formatted; it does not control the instant of time represented by the vector. The time is not printed if it is midnight.
+
+### 3.4.4 Duration
+
+Durations, which represent the amount of time between pairs of dates or date-times, are stored in difftimes. Difftimes are built on top of doubles, and have a units attribute that determines how the integer should be interpreted:
+```{r}
+one_week <- as.difftime(1,units = "weeks")
+one_week
+typeof(one_week)
+attributes(one_week)
+```
+
+## 3.5 Lists
+
+Each element of lists can be any type, since each element is a reference to another object, which can be any type. 
+```{r}
+l1 <- list(1:3, "a", c(TRUE, FALSE, TRUE), c(2.3, 2.3))
+
+typeof(l1)
+str(l1)
+```
+Because the elements of a list are references, a list can be smaller than you expect.What's more, list are sometimes called recursive vectors since a list can contain other list which makes them fundamentally different from atomic vectors.
+c() function can combine several lists into one. When combining a list and a vector, c() will coerce the vector to list and combine them.
+
+
+With lists, the dimension attribute can be used to creat list-matrices or list-arrays. They do not need have the same type of element.
+```{r}
+l <- list(1:3, "a", TRUE, 1.0)
+dim(l) <- c(2,2)
+l
+
+l[[1,1]]
+```
+
+## 3.6 Data frames and tibbles
+
+The two most important S3 vectors built on top of lists are data frames and tibbles.  A data frame is a named list of vectors with attributes for (column) names, row.names, and its class, “data.frame”:
+
+
+```{r}
+df1 <- data.frame(x = 1:3, y = letters[1:3])
+typeof(df1)
+attributes(df1)
+```
+
+In contrast to a regular list, a data frame has an additional constraint: the length of each of its vectors must be the same. This gives data frames their rectangular structure and explains why they share the properties of both matrices and lists. 
+
+Data frames are one of the biggest and most important ideas in R, and one of the things that make R different from other programming languages. However, in the over 20 years since their creation, the ways that people use R have changed, and some of the design decisions that made sense at the time data frames were created now cause frustration.
+
+This frustration lead to the creation of the tibble (Müller and Wickham 2018), a modern reimagining of the data frame. Tibbles are designed to be (as much as possible) drop-in replacements for data frames that fix those frustrations. A concise, and fun, way to summarise the main differences is that tibbles are lazy and surly: they do less and complain more. You’ll see what that means as you work through this section.
+
+Tibbles are provided by the tibble package and share the same structure as data frames. The only difference is that the class vector is longer, and includes tbl_df. This allows tibbles to behave differently in the key ways which we’ll discuss below.
+
+```{r}
+library(tibble)
+df2 <- tibble(x = 1:3, y = letters[1:3])
+typeof(df2)
+attributes(df2)
+```
+
+### 3.6.1 Creating
+
+```{r}
+df <- data.frame(x = 1:3, y = c("a","b","c"))
+str(df)
+```
+Character will be automatically converted to factor. To suppress this and keep character vectors as character vectors, we can use stringAsFactors = FALSE.
+```{r}
+df1 <- data.frame(
+  x = 1:3,
+  y = c("a", "b", "c"),
+  stringsAsFactors = FALSE
+)
+str(df1)
+```
+
+Creating a tibble is similar to creating a data frame. The difference between the two is that tibbles never coerce their input (this is one feature that makes them lazy).
+```{r}
+df2 <- tibble(
+  x = 1:3, 
+  y = c("a", "b", "c")
+)
+str(df2)
+
+```
+
+Additionally, while data frames automatically transform non-syntactic names (unless check.names = FALSE), tibbles do not.
+```{r}
+names(data.frame("1"=1))
+names(tibble("1" = 1))
+```
+
+While every element of a data frame (or tibble) must have the same length, both data.frame() and tibble() will recycle shorter inputs. However, while data frames automatically recycle columns that are an integer multiple of the longest column, tibbles will only recycle vectors of length one.
+
+There is one final difference: tibble() allows you to refer to variables created during construction.
+
+
+### 3.6.2 Row names
+
+Data frames allow you to label each row with a name, a character vector containing only unique values.
+
+```{r}
+df3 <- data.frame(
+  age = c(35, 27, 18),
+  hair = c("blond", "brown", "black"),
+  row.names = c("Bob", "Susan", "Sam")
+)
+df3
+```
+You can get and set row names with rownames(), and you can use them to subset rows.
+
+```{r}
+rownames(df3)
+df3["Bob",]
+```
+
+Generally, using row name in data frame is a bad idea, especially when you have a large dataset.
+
+### 3.6.4 Subsetting
+In my opinion, data frames have two undesirable subsetting behaviours:
+
+1. When you subset columns with df[, vars], you will get a vector if vars selects one variable, otherwise you’ll get a data frame. This is a frequent source of bugs when using [ in a function, unless you always remember to use df[, vars, drop = FALSE].
+
+2. When you attempt to extract a single column with df\$x and there is no column x, a data frame will instead select any variable that starts with x. If no variable starts with x, df\$x will return NULL. This makes it easy to select the wrong variable or to select a variable that doesn’t exist.
+
+Tibbles tweak these behaviours so that a [ always returns a tibble, and a $ doesn’t do partial matching and warns if it can’t find a variable (this is what makes tibbles surly).
+If you want a single column, I recommend using df[["col"]]. This clearly communicates your intent, and works with both data frames and tibbles.
+
+
+### 3.6.6 List columns
+
+Since a data frame is a list of vectors, it is possible for a data frame to have a column that is a list. This is very useful because a list can contain any other object: this means you can put any object in a data frame. This allows you to keep related objects together in a row, no matter how complex the individual objects are.
+
+
+List-columns are allowed in data frames but you have to do a little extra work by either adding the list-column after creation or wrapping the list in I()
+
+```{r}
+df <- data.frame(x = 1:3)
+df$y <- list(1:2, 1:3, 1:4)
+
+data.frame(
+  x = 1:3, 
+  y = I(list(1:2, 1:3, 1:4))
+)
+```
+
+
+List columns are easier to use with tibbles because they can be directly included inside tibble() and they will be printed tidily.
+```{r}
+tibble(
+  x = 1:3, 
+  y = list(1:2, 1:3, 1:4)
+)
+```
+
+### 3.6.7 Matrix and data frame columns
+
+Like list, matrix and data frame columns are also allowed in data frame, as long as the number of rows matches the data frame. We have to either add it after creation or wrap it in I().
+```{r}
+dfm <- data.frame(
+  x = 1:3 * 10
+)
+dfm$y <- matrix(1:9, nrow = 3)
+dfm$z <- data.frame(a = 3:1, b = letters[1:3], stringsAsFactors = FALSE)
+
+str(dfm)
+```
+
+
+## 3.7 NULL
+
+To finish up this chapter, I want to talk about one final important data structure that’s closely related to vectors: NULL. NULL is special because it has a unique type, is always length zero, and can’t have any attributes.
+```{r}
+typeof(NULL)
+length(NULL)
+x <- NULL
+# error: attr(x, "y") <- 1
+```
+
+Two common uses of NULL:
+1. Represent an empty vector of arbitrary type.
+2. Represent an absent vectro. For instance, as a default function argument.
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
